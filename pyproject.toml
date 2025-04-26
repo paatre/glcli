@@ -1,0 +1,26 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
+[project]
+authors = [
+    { name = "Teemu Viikeri", email = "tepavi@gmail.com" },
+]
+description = "An interactive command-line tool for GitLab REST API."
+keywords = ["gitlab"]
+name = "glcli"
+readme = "README.md"
+version = "0.1.0"
+
+dependencies = [
+    "fzf-wrapper>=0.1.7",
+    "pydantic-settings>=2.9.1",
+    "python-gitlab>=5.6.0",
+    "tomli>=2.2.1",
+    "typer>=0.15.2",
+    "yaspin>=3.1.0",
+]
+requires-python = ">=3.9"
+
+[project.scripts]
+glcli = "glcli.cli:app"
