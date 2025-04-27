@@ -2,6 +2,9 @@
 build-backend = "hatchling.build"
 requires = ["hatchling>=1.26"]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [project]
 authors = [
     { name = "Teemu Viikeri", email = "tepavi@gmail.com" },
@@ -23,7 +26,7 @@ dependencies = [
 requires-python = ">=3.9"
 
 [project.scripts]
-glcli = "glcli.cli:app"
+glcli = "src.cli:app"
 
 [dependency-groups]
 dev = [
