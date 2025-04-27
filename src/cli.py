@@ -1,4 +1,3 @@
-import os
 import typer
 from typing import Annotated, Optional
 
