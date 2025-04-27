@@ -1,14 +1,16 @@
-import typer
 from typing import Annotated, Optional
+import typer
+from .client import get_gitlab_instance
+
 
 app = typer.Typer(
     invoke_without_command=True,
-    no_args_is_help=True,
 )
 
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     config: Annotated[
         Optional[str],
         typer.Option(
@@ -21,12 +23,8 @@ def main(
     """
     An interactive command-line tool for GitLab REST API.
     """
-    if config:
-        from config import Settings
-
-        global settings
-        settings = Settings(config_file=config)
-        typer.echo(f"Using config file: {config}")
+    if ctx.invoked_subcommand is None:
+        gl = get_gitlab_instance(config)
 
 
 if __name__ == "__main__":

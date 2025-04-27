@@ -1,74 +1,79 @@
 import os
 import sys
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Optional
 
-# Use tomllib for Python 3.11+, otherwise use tomli
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/glcli")
-DEFAULT_CONFIG_FILE = os.path.join(DEFAULT_CONFIG_DIR, "config.toml")
-
-CONFIG_FILE = os.getenv("GLCLI_CONFIG_FILE", DEFAULT_CONFIG_FILE)
-
-
-def _load_toml_settings() -> Dict[str, Any]:
+class Config:
     """
-    Read [settings] from the TOML file if it exists; otherwise return empty dict.
+    Holds GitLab connection settings.
+
+    Attributes:
+        gitlab_url: The base URL of your GitLab instance (required).
+        private_access_token: A valid PAT with API scope (required).
     """
-    try:
-        with open(CONFIG_FILE, "rb") as f:
-            data = tomllib.load(f)
-            return data.get("settings", {})
-    except (FileNotFoundError, OSError):
-        return {}
-    except tomllib.TOMLDecodeError as e:
-        raise RuntimeError(f"Error parsing TOML config {DEFAULT_CONFIG_FILE}: {e}")
 
+    DEFAULT_CONFIG_FILE = Path.home() / ".config" / "glcli" / "config.toml"
+    ENV_CONFIG_FILE = "GLCLI_CONFIG_FILE"
+    ENV_URL = "GLCLI_GITLAB_URL"
+    ENV_TOKEN = "GLCLI_PRIVATE_ACCESS_TOKEN"
 
-def _toml_settings_source(settings: BaseSettings) -> Dict[str, Any]:
-    return _load_toml_settings()
+    def __init__(self, gitlab_url: str, private_access_token: str):
+        self.gitlab_url = gitlab_url
+        self.private_access_token = private_access_token
 
-
-class Settings(BaseSettings):
-    gitlab_url: str = "https://gitlab.com"
-    private_access_token: Optional[str] = None
-
-    model_config = SettingsConfigDict(
-        env_prefix="GLCLI_",
-        settings_customise_sources=(
-            lambda settings_cls, init_kwargs, env, _dotenv, _secrets: (
-                init_kwargs,
-                env,
-                _toml_settings_source,
-            ),
-        ),
-    )
-
-
-settings = Settings()
-
-
-def get_gitlab_url(cli_url: Optional[str]) -> str:
-    url = cli_url or settings.gitlab_url
-    if not url:
-        raise RuntimeError(
-            "No GitLab URL configured. Please supply `--url`, set GLCLI_GITLAB_URL, "
-            "or add `gitlab_url = …` under [settings] in your config.toml."
+    @classmethod
+    def load(cls, config_path: Optional[str] = None) -> "Config":
+        """
+        Load settings, in this order:
+          1. File path: `config_path` → $GLCLI_CONFIG_FILE → DEFAULT_CONFIG_FILE
+          2. TOML `[settings]` section
+          3. Env vars GLCLI_GITLAB_URL and GLCLI_PRIVATE_ACCESS_TOKEN
+          4. Error if either `gitlab_url` or `private_access_token` is missing
+        """
+        # 1) pick file
+        path = (
+            Path(config_path)
+            if config_path
+            else Path(os.getenv(cls.ENV_CONFIG_FILE, cls.DEFAULT_CONFIG_FILE))
         )
-    return url
 
+        # 2) read TOML
+        data = {}
+        if path.is_file():
+            try:
+                with path.open("rb") as f:
+                    raw = tomllib.load(f)
+                data = raw.get("settings", {})
+            except tomllib.TOMLDecodeError as e:
+                raise RuntimeError(f"Could not parse TOML at {path}: {e}")
 
-def get_private_token(cli_token: Optional[str]) -> str:
-    token = cli_token or settings.private_access_token
-    if not token:
-        raise RuntimeError(
-            "No GitLab Personal Access Token configured. Please supply --token, "
-            "set GLCLI_PRIVATE_ACCESS_TOKEN, or add `private_access_token = …` "
-            "under [settings] in your config.toml."
-        )
-    return token
+        url = data.get("gitlab_url", "")
+        token = data.get("private_access_token", "")
+
+        # 3) override from env
+        url = os.getenv(cls.ENV_URL, url).strip()
+        token = os.getenv(cls.ENV_TOKEN, token).strip()
+
+        # 4) validate url
+        if not url:
+            raise RuntimeError(
+                "Missing GitLab instance URL. "
+                "Please set it in the config file or export "
+                f"${cls.ENV_URL}."
+            )
+
+        # 5) validate token
+        if not token:
+            raise RuntimeError(
+                "Missing GitLab Personal Access Token. "
+                "Please set it in the config file or export "
+                f"${cls.ENV_TOKEN}."
+            )
+
+        return cls(gitlab_url=url, private_access_token=token)
