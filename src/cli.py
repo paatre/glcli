@@ -1,6 +1,7 @@
 from typing import Annotated, Optional
 import typer
 from .client import get_gitlab_instance
+from .dispatcher import run
 
 
 app = typer.Typer(
@@ -25,6 +26,8 @@ def main(
     """
     if ctx.invoked_subcommand is None:
         gl = get_gitlab_instance(config)
+        run(gl)
+        raise typer.Exit()
 
 
 if __name__ == "__main__":
