@@ -106,20 +106,10 @@ wheels = [
 ]
 
 [[package]]
-name = "fzf-wrapper"
-version = "0.1.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/46/1b/01053a986bbae48433d79c06a81f3496b8c17deb42b2f444012ba2550da6/fzf-wrapper-0.1.7.tar.gz", hash = "sha256:51f30047f6f9fa4b98d346cf73f3647be27a43cf4b168072cf06e5fdeb98a6e3", size = 3703 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/6c/80fe0790c5a34699668ff7f6819a77bfd236fdf6105feacd93be92e455af/fzf_wrapper-0.1.7-py3-none-any.whl", hash = "sha256:d8080b43e14db68d24ef686fda061cc11d3b7e42748f416427b4c66100b639cd", size = 4367 },
-]
-
-[[package]]
 name = "glcli"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "fzf-wrapper" },
     { name = "python-gitlab" },
     { name = "tomli" },
     { name = "typer" },
@@ -133,7 +123,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fzf-wrapper", specifier = ">=0.1.7" },
     { name = "python-gitlab", specifier = ">=5.6.0" },
     { name = "tomli", specifier = ">=2.2.1" },
     { name = "typer", specifier = ">=0.15.2" },

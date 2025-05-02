@@ -1,7 +1,7 @@
 from typing import Annotated, Optional
 import typer
 from .client import get_gitlab_instance
-from .dispatcher import run
+from .runner import run
 
 
 app = typer.Typer(

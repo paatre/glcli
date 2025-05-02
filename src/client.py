@@ -1,6 +1,6 @@
-from typing import Optional
 import gitlab
 import typer
+from typing import Optional
 from yaspin import yaspin
 from .config import Config
 
