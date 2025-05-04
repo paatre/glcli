@@ -1,14 +1,20 @@
 import inspect
-import gitlab
+import re
+from gitlab.base import RESTManager
+from gitlab.v4 import objects
 from .adapter import RESTAdapter
+from .utils import humanize
 
 
-def get_adapters_for(gl: gitlab.Gitlab) -> dict[str, RESTAdapter]:
+def get_adapters_for(gl) -> dict[str, RESTAdapter]:
     """
-    Discover every gitlab.base.RESTManager on the `gl` client
-    and wrap it in our RESTAdapter.
-
-    Returns a dictionary mapping manager names to their respective adapters.
+    Wrap every top-level RESTManager on `gl` in a RESTAdapter.
     """
-    managers = inspect.getmembers(gl, lambda o: isinstance(o, gitlab.base.RESTManager))
-    return {name: RESTAdapter(name, gl) for name, _ in managers}
+    adapters: dict[str, RESTAdapter] = {}
+
+    for name, mgr in inspect.getmembers(gl, lambda o: isinstance(o, RESTManager)):
+        label = humanize(name)
+        adapters[label] = RESTAdapter(label, mgr)
+
+    return adapters
+

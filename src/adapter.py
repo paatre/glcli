@@ -47,21 +47,21 @@ class RESTAdapter(CliAction):
 
     name: ClassVar[str]
 
-    def __init__(self, manager_name: str, gl: gitlab.Gitlab):
+    def __init__(self, manager_name: str, manager: RESTManager):
         self.name = manager_name
-        self._gl = gl
+        self._mgr = manager
 
     def build_actions(self, mgr: RESTManager) -> list[tuple[str, str | None]]:
         """
         Builds a list of available actions for the given manager.
         """
         actions: list[tuple[str, str | None]] = []
-        mro = [cls.__name__ for cls in inspect.getmro(type(mgr))]
+        mro = [cls.__name__ for cls in inspect.getmro(type(self._mgr))]
 
         for mixin_name, entries in _MIXIN_ACTIONS.items():
             if mixin_name in mro:
                 for label, method_name in entries:
-                    if hasattr(mgr, method_name):
+                    if hasattr(self._mgr, method_name):
                         actions.append((label, method_name))
 
         return actions
@@ -79,23 +79,24 @@ class RESTAdapter(CliAction):
         Show the interactive menu for this RESTManager.
         """
         # Build the list of available actions
-        mgr = getattr(self._gl, self.name)
+        mgr = self._mgr
         actions = self.build_actions(mgr)
         actions.append(("← Back to main menu", None))
 
-        # Prompt
+        # Prompt for choice
         labels = [label for label, _ in actions]
         choice = prompt(labels)
         if not choice:
             typer.echo("No selection, returning…")
             return
-        selected = choice[0]
 
-        # Find and call the method
+        # Get the selected action and method
+        selected = choice[0]
         method = self.get_method_for_label(selected, actions)
         if method is None:
             return
+
+        # Call the method
         fn = getattr(mgr, method)
-        handler_name = f"handle_{method}"
-        handler = getattr(handlers, handler_name, handlers.handle_fallback)
+        handler = getattr(handlers, f"handle_{method}", handlers.handle_fallback)
         handler(fn)

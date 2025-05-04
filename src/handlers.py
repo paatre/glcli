@@ -5,12 +5,12 @@ from .fzf import prompt
 
 
 def handle_list(fn):
-    list_results = fn()
+    list_results = fn(get_all=True)
     items, labels = [], []
     for obj in list_results:
         items.append(obj)
         labels.append(
-            f"{getattr(obj, 'id', '')}\t{getattr(obj, 'name', getattr(obj, 'username', ''))}"
+            f"{getattr(obj, 'id', '')}\t{getattr(obj, 'name', getattr(obj, 'title', ''))}"
         )
     sel = prompt(labels)
     if not sel:
