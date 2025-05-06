@@ -1,6 +1,7 @@
+import gitlab
 import inspect
-import typer
 import json
+import typer
 from .fzf import prompt
 
 
@@ -28,7 +29,43 @@ def handle_get(fn):
     typer.echo(obj.attributes)
 
 
+def handle_projectissuelink_create(manager, fn):
+    gl = manager.gitlab
+
+    src_issue = manager._parent  
+    src_iid     = src_issue.iid
+    project_id = src_issue.project_id
+
+    project = gl.projects.get(project_id)
+    all_issues = project.issues.list(get_all=True)
+
+    labels = [
+        f"{issue.iid}\t{issue.title or issue.description or ''}"
+        for issue in all_issues
+        if issue.iid != src_iid
+    ]
+    header = f"Pick issues to relate to {src_iid} (TAB for multi; ENTER when done)"
+    choices = prompt(labels, header=header, fzf_options="--multi")
+    if not choices:
+        typer.echo("No targets selected, aborting.")
+        return
+
+    for line in choices:
+        tgt_iid = int(line.split("\t", 1)[0])
+        data = {
+            "target_project_id": project_id,
+            "target_issue_iid":  tgt_iid,
+        }
+        src, tgt = fn(data)
+        typer.secho(f"🔗 Linked issue {src_iid} → {tgt_iid}", fg="green")
+
+
 def handle_create(fn):
+    manager = fn.__self__
+
+    if isinstance(manager, gitlab.v4.objects.ProjectIssueLinkManager):
+        return handle_projectissuelink_create(manager, fn)
+
     raw = typer.prompt("Enter data for create (as JSON)")
     data = json.loads(raw)
     typer.echo(fn(data))
